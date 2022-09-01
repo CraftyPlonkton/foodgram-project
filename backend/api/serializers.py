@@ -1,5 +1,8 @@
+from django.contrib.auth import get_user_model
 from rest_framework.serializers import ModelSerializer, SlugRelatedField
-from recipes.models import Tag, Ingredient
+from recipes.models import Tag, Ingredient, Recipe
+
+User = get_user_model()
 
 
 class TagSerializer(ModelSerializer):
@@ -16,4 +19,10 @@ class IngredientSerializer(ModelSerializer):
 
     class Meta:
         model = Ingredient
+        fields = '__all__'
+
+
+class RecipeSerializer(ModelSerializer):
+    class Meta:
+        model = Recipe
         fields = '__all__'

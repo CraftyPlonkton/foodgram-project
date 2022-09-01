@@ -11,7 +11,16 @@ class User(AbstractUser):
         through='Following',
         symmetrical=False,
         related_name='followers',
-        related_query_name='follower',
+        blank=True
+    )
+    favorite_recipes = models.ManyToManyField(
+        'recipes.Recipe',
+        related_name='favorite_by',
+        blank=True
+    )
+    shopping_cart = models.ManyToManyField(
+        'recipes.Recipe',
+        related_name='shopping_cart',
         blank=True
     )
 
@@ -29,15 +38,15 @@ class User(AbstractUser):
 
 
 class Following(models.Model):
-    follower = models.ForeignKey(
+    subscriber = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='user',
+        related_name='subscribers',
         verbose_name='Подписчик')
-    following = models.ForeignKey(
+    author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='author',
+        related_name='authors',
         verbose_name='Автор')
 
     class Meta:
@@ -45,4 +54,4 @@ class Following(models.Model):
         verbose_name_plural = 'Подписки'
 
     def __str__(self):
-        return f'{self.follower} --> {self.following}'
+        return f'{self.subscriber} --> {self.author}'
