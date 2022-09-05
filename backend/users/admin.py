@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from users.models import User, Following
+from users.models import Following, User
 
 
 class UserAdmin(admin.ModelAdmin):

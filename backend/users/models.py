@@ -3,23 +3,20 @@ from django.db import models
 
 
 class User(AbstractUser):
-    email = models.EmailField('e-mail адресс', unique=True)
+    email = models.EmailField('e-mail адресс', unique=True, max_length=254)
     first_name = models.CharField('Имя', max_length=150)
     last_name = models.CharField('Фамилия', max_length=150)
     following = models.ManyToManyField(
         'self',
         through='Following',
         symmetrical=False,
+        verbose_name='Подписки на авторов',
         related_name='followers',
-        blank=True
-    )
-    favorite_recipes = models.ManyToManyField(
-        'recipes.Recipe',
-        related_name='favorite_by',
-        blank=True
+        blank=True,
     )
     shopping_cart = models.ManyToManyField(
         'recipes.Recipe',
+        verbose_name='Список покупок',
         related_name='shopping_cart',
         blank=True
     )

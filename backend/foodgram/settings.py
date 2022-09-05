@@ -118,12 +118,6 @@ DJOSER = {
     'ACTIVATION_URL': False,
     'PASSWORD_RESET_CONFIRM_URL': False,
     'USERNAME_RESET_CONFIRM_URL': False,
-    'SERIALIZERS': {
-        'user': 'users.serializers.MyUserSerializer'
-    },
-    'PERMISSIONS': {
-        'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly']
-    }
 }
 
 # Internationalization
