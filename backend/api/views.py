@@ -22,6 +22,7 @@ from .serializers import (IngredientSerializer, RecipeReadSerializer,
 
 class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
                   mixins.RetrieveModelMixin, GenericViewSet):
+    """Получение и создание пользователей"""
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (ListPostAllowAny,)
@@ -29,6 +30,7 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     @action(detail=False, methods=('get',),
             permission_classes=(IsAuthenticated,))
     def me(self, request):
+        """Получение информации о себе"""
         user = request.user
         serializer = UserSerializer(user, context={'request': request})
         return Response(serializer.data)
@@ -36,6 +38,7 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     @action(detail=False, methods=('post',),
             permission_classes=(IsAuthenticated,))
     def set_password(self, request):
+        """Изменение пароля"""
         user = request.user
         serializer = SetPasswordSerializer(
             data=request.data, context={'user': user})
@@ -46,6 +49,7 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     @action(detail=False, methods=('get',),
             permission_classes=(IsAuthenticated,))
     def subscriptions(self, request):
+        """Получение списка подписок на авторов"""
         subscriptions = request.user.following.all()
         serializer = SubscriptionSerializer(subscriptions, many=True,
                                             context={'request': request})
@@ -54,6 +58,7 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     @action(detail=True, methods=('post', 'delete'),
             permission_classes=(IsAuthenticated,))
     def subscribe(self, request, pk):
+        """Добавление и удаление подписок на авторов"""
         if request.method == 'POST':
             author = get_object_or_404(User, id=pk)
             user = request.user
@@ -69,6 +74,7 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
 
 class TagViewSet(ReadOnlyModelViewSet):
+    """Получение информации о тегах"""
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (AllowAny,)
@@ -76,6 +82,7 @@ class TagViewSet(ReadOnlyModelViewSet):
 
 
 class IngredientViewSet(ReadOnlyModelViewSet):
+    """Получение информации об ингредиентах"""
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny,)
@@ -84,6 +91,7 @@ class IngredientViewSet(ReadOnlyModelViewSet):
 
 
 class RecipeViewSet(ModelViewSet):
+    """Получение и создание рецептов"""
     queryset = (Recipe.objects.
                 prefetch_related('ingredients', 'tags').
                 select_related('author'))
@@ -142,6 +150,7 @@ class RecipeViewSet(ModelViewSet):
     @action(detail=True, methods=('post', 'delete'),
             permission_classes=(IsAuthenticated,))
     def shopping_cart(self, request, pk):
+        """Добавление и удаление рецептов из списка покупок"""
         if request.method == 'POST':
             user = request.user
             recipe = get_object_or_404(Recipe, id=pk)
@@ -158,6 +167,7 @@ class RecipeViewSet(ModelViewSet):
     @action(detail=False, methods=('get',),
             permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
+        """Скачивание списка покупок в формате CSV"""
         ingredients = (
             request.user.shopping_cart.all().
             values_list('recipeingredients__ingredient__name',
@@ -177,6 +187,7 @@ class RecipeViewSet(ModelViewSet):
     @action(detail=True, methods=('post', 'delete'),
             permission_classes=(IsAuthenticated,))
     def favorite(self, request, pk):
+        """Добавление у удаление рецептов из избранного"""
         if request.method == 'POST':
             user = request.user
             recipe = get_object_or_404(Recipe, id=pk)
