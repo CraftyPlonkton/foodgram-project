@@ -63,7 +63,8 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
             author = get_object_or_404(User, id=pk)
             user = request.user
             user.following.add(author)
-            serializer = SubscriptionSerializer(author)
+            serializer = SubscriptionSerializer(author,
+                                                context={'request': request})
             return Response(serializer.data)
         if request.method == 'DELETE':
             author = get_object_or_404(User, id=pk)
