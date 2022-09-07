@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
+    'django_filters',
     'debug_toolbar',
     'users.apps.UsersConfig',
     'recipes.apps.RecipesConfig'
@@ -110,7 +111,9 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',),
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_FILTER_BACKENDS': ('django_filters.rest_framework.DjangoFilterBackend',
+                                'rest_framework.filters.SearchFilter'),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 6
 }
 DJOSER = {
@@ -152,3 +155,18 @@ INTERNAL_IPS = [
     '127.0.0.1',
     'localhost',
 ]
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': False,
+#     'handlers': {
+#         'console': {
+#             'class': 'logging.StreamHandler',
+#         },
+#     },
+#     'loggers': {
+#         'django.db.backends': {
+#             'handlers': ['console', ],
+#             'level': 'DEBUG',
+#         },
+#     },
+# }

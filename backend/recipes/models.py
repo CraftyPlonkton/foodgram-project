@@ -13,7 +13,6 @@ class Tag(models.Model):
     class Meta:
         verbose_name = 'Тег'
         verbose_name_plural = 'Теги'
-        ordering = ['name']
 
     def __str__(self):
         return self.name
@@ -26,7 +25,6 @@ class Ingredient(models.Model):
     class Meta:
         verbose_name = 'Ингридиент'
         verbose_name_plural = 'Ингридиенты'
-        ordering = ['name']
 
     def __str__(self):
         return f'{self.name} {self.measurement_unit}.'
@@ -54,7 +52,7 @@ class Recipe(models.Model):
     )
     favorited_by = models.ManyToManyField(
         User,
-        verbose_name='Любимые рецепты',
+        verbose_name='В избранном у',
         related_name='favorite_recipes',
         blank=True)
     name = models.CharField('Название', max_length=50)
@@ -85,4 +83,4 @@ class RecipeIngredients(models.Model):
     class Meta:
         verbose_name = 'Ингредиенты в рецепте'
         verbose_name_plural = 'Ингредиенты в рецепте'
-        unique_together = ['recipe', 'ingredient']
+        unique_together = ('recipe', 'ingredient')

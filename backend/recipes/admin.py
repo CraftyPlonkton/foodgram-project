@@ -13,11 +13,22 @@ class TagAdmin(admin.ModelAdmin):
 
 
 class IngredientAdmin(admin.ModelAdmin):
-    pass
+    list_filter = ('name', )
+    search_fields = ('name', )
 
 
 class RecipeAdmin(admin.ModelAdmin):
     inlines = (RecipeIngredientsInline,)
+    list_display = ('name', 'author', 'pub_date', 'favorites_count')
+    list_filter = ('name', 'author', 'tags')
+    search_fields = ('name',)
+    ordering = ('-pub_date',)
+    filter_horizontal = ('tags', 'favorited_by')
+
+    def favorites_count(self, obj):
+        return obj.favorited_by.all().count()
+
+    favorites_count.__name__ = 'Добавлений в избранное'
 
 
 class RecipeIngredientsAdmin(admin.ModelAdmin):
