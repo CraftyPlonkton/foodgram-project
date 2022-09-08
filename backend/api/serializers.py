@@ -3,6 +3,7 @@ from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
 
 from recipes.models import Ingredient, Recipe, Tag
+from users.models import Following
 
 User = get_user_model()
 
@@ -22,13 +23,6 @@ class UserSerializer(serializers.ModelSerializer):
         return (user.is_authenticated and
                 obj.followers.filter(id=user.id).exists())
 
-    def create(self, validated_data):
-        password = validated_data.pop('password')
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
-        return user
-
 
 class SetPasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(
@@ -41,13 +35,6 @@ class SetPasswordSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError('Неверный текущий пароль')
         return value
-
-    def create(self, validated_data):
-        user = self.context['user']
-        password = validated_data['new_password']
-        user.set_password(password)
-        user.save()
-        return user
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -82,24 +69,16 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
     def validate_ingredients(self, value):
         if not value:
             raise serializers.ValidationError('Поле обязательно')
+        ingredients_id = [ingredient['id'].id for ingredient in value]
+        if len(ingredients_id) != len(set(ingredients_id)):
+            raise serializers.ValidationError(
+                'Повторяющиеся ингредиенты в рецепте')
         return value
 
     def validate_tags(self, value):
         if not value:
             raise serializers.ValidationError('Поле обязательно')
         return value
-
-    def create(self, validated_data):
-        validated_data.pop('tags')
-        validated_data.pop('ingredients')
-        recipe = Recipe(**validated_data)
-        recipe.save()
-        return recipe
-
-    def update(self, instance, validated_data):
-        validated_data.pop('tags')
-        validated_data.pop('ingredients')
-        return super().update(instance, validated_data)
 
 
 class RecipeReadSerializer(serializers.ModelSerializer):
@@ -152,3 +131,19 @@ class SubscriptionSerializer(serializers.Serializer):
 
     def get_recipes_count(self, obj):
         return Recipe.objects.filter(author=obj).count()
+
+
+class FollowingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Following
+        fields = '__all__'
+
+    def validate(self, attrs):
+        subscriber = attrs['subscriber']
+        author = attrs['author']
+        if subscriber == author:
+            raise serializers.ValidationError('Нельзя подписаться на себя')
+        if Following.objects.filter(
+                author=author, subscriber=subscriber).exists():
+            raise serializers.ValidationError('Вы уже подписаны на автора')
+        return attrs

@@ -1,14 +1,18 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-key'
+SECRET_KEY = os.getenv('SECRET_KEY', default='django-insecure-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = (os.getenv('DEBUG', default=False) == 'True')
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
@@ -65,11 +69,14 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.getenv('DB_ENGINE', default='django.db.backends.sqlite3'),
+        'NAME': os.getenv('DB_NAME', default=BASE_DIR / 'db.sqlite3'),
+        'USER': os.getenv('POSTGRES_USER', default='postgres'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', default='postgres'),
+        'HOST': os.getenv('DB_HOST', default='db'),
+        'PORT': os.getenv('DB_PORT', default='5432')
     }
 }
-
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -98,15 +105,6 @@ REST_FRAMEWORK = {
                                 'rest_framework.filters.SearchFilter'),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 6
-}
-
-
-# Djoser settings
-DJOSER = {
-    'HIDE_USERS': False,
-    'ACTIVATION_URL': False,
-    'PASSWORD_RESET_CONFIRM_URL': False,
-    'USERNAME_RESET_CONFIRM_URL': False,
 }
 
 

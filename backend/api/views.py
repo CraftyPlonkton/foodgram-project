@@ -1,23 +1,29 @@
 import csv
 
+from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.viewsets import (GenericViewSet, ModelViewSet,
                                      ReadOnlyModelViewSet, mixins)
 
-from recipes.models import Ingredient, Recipe, RecipeIngredients, Tag, User
+from recipes.models import Ingredient, Recipe, RecipeIngredients, Tag
+from users.models import Following
 
 from .filters import RecipeFilter
-from .permissions import GetAllowAnyIsOwnerOrReadOnly, ListPostAllowAny
-from .serializers import (IngredientSerializer, RecipeReadSerializer,
-                          RecipeShortSerializer, RecipeWriteSerializer,
-                          SetPasswordSerializer, SubscriptionSerializer,
-                          TagSerializer, UserSerializer)
+from .permissions import ListPostAllowAny, OwnerOrReadOnly
+from .serializers import (FollowingSerializer, IngredientSerializer,
+                          RecipeReadSerializer, RecipeShortSerializer,
+                          RecipeWriteSerializer, SetPasswordSerializer,
+                          SubscriptionSerializer, TagSerializer,
+                          UserSerializer)
+
+User = get_user_model()
 
 
 class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
@@ -27,45 +33,60 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
     serializer_class = UserSerializer
     permission_classes = (ListPostAllowAny,)
 
+    def perform_create(self, serializer):
+        password = serializer.validated_data.pop('password')
+        user = serializer.save()
+        user.set_password(password)
+        user.save()
+
     @action(detail=False, methods=('get',),
             permission_classes=(IsAuthenticated,))
     def me(self, request):
         """Получение информации о себе"""
         user = request.user
-        serializer = UserSerializer(user, context={'request': request})
+        serializer = self.get_serializer(user, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=('post',),
-            permission_classes=(IsAuthenticated,))
+            permission_classes=(IsAuthenticated,),
+            serializer_class=SetPasswordSerializer)
     def set_password(self, request):
         """Изменение пароля"""
         user = request.user
-        serializer = SetPasswordSerializer(
-            data=request.data, context={'user': user})
+        serializer = self.get_serializer(data=request.data,
+                                         context={'user': user})
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        new_password = serializer.validated_data['new_password']
+        user.set_password(new_password)
+        user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=('get',),
-            permission_classes=(IsAuthenticated,))
+            permission_classes=(IsAuthenticated,),
+            serializer_class=SubscriptionSerializer)
     def subscriptions(self, request):
         """Получение списка подписок на авторов"""
         subscriptions = request.user.following.all()
-        serializer = SubscriptionSerializer(subscriptions, many=True,
-                                            context={'request': request})
+        serializer = self.get_serializer(subscriptions, many=True,
+                                         context={'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=('post', 'delete'),
-            permission_classes=(IsAuthenticated,))
+            permission_classes=(IsAuthenticated,),
+            serializer_class=FollowingSerializer,
+            queryset=Following.objects.all())
     def subscribe(self, request, pk):
         """Добавление и удаление подписок на авторов"""
         if request.method == 'POST':
             author = get_object_or_404(User, id=pk)
             user = request.user
-            user.following.add(author)
-            serializer = SubscriptionSerializer(author,
-                                                context={'request': request})
-            return Response(serializer.data)
+            serializer = self.get_serializer(
+                data={'author': author.id, 'subscriber': user.id})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            response = SubscriptionSerializer(author,
+                                              context={'request': request})
+            return Response(response.data)
         if request.method == 'DELETE':
             author = get_object_or_404(User, id=pk)
             user = request.user
@@ -96,7 +117,7 @@ class RecipeViewSet(ModelViewSet):
     queryset = (Recipe.objects.
                 prefetch_related('ingredients', 'tags').
                 select_related('author'))
-    permission_classes = (GetAllowAnyIsOwnerOrReadOnly,)
+    permission_classes = (IsAuthenticatedOrReadOnly, OwnerOrReadOnly)
     filterset_class = RecipeFilter
 
     def get_serializer_class(self):
@@ -105,9 +126,8 @@ class RecipeViewSet(ModelViewSet):
         return RecipeWriteSerializer
 
     @staticmethod
-    def add_ingredients_in_recipe(validated_data, recipe):
+    def add_ingredients_in_recipe(ingredients_data, recipe):
         recipe.ingredients.clear()
-        ingredients_data = validated_data['ingredients']
         objects = [RecipeIngredients(
             recipe=recipe,
             ingredient=data['id'],
@@ -115,38 +135,39 @@ class RecipeViewSet(ModelViewSet):
         RecipeIngredients.objects.bulk_create(objects)
 
     @staticmethod
-    def add_tags_in_recipe(validated_data, recipe):
+    def add_tags_in_recipe(tags_data, recipe):
         recipe.tags.clear()
-        tags_data = validated_data['tags']
         tags = [tag.id for tag in tags_data]
         recipe.tags.add(*tags)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
+        ingredients_data = serializer.validated_data.pop('ingredients')
+        tags_data = serializer.validated_data.pop('tags')
         recipe = serializer.save(author=self.request.user)
-        self.add_ingredients_in_recipe(validated_data, recipe)
-        self.add_tags_in_recipe(validated_data, recipe)
-        serializer = RecipeReadSerializer(
+        self.add_ingredients_in_recipe(ingredients_data, recipe)
+        self.add_tags_in_recipe(tags_data, recipe)
+        response = RecipeReadSerializer(
             recipe, context={'request': self.request})
-        headers = self.get_success_headers(serializer.data)
+        headers = self.get_success_headers(response.data)
         return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            response.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
+        ingredients_data = serializer.validated_data.pop('ingredients')
+        tags_data = serializer.validated_data.pop('tags')
         recipe = serializer.save(author=self.request.user)
-        self.add_ingredients_in_recipe(validated_data, recipe)
-        self.add_tags_in_recipe(validated_data, recipe)
-        serializer = RecipeReadSerializer(
-            recipe, context={'request': self.request})
-        headers = self.get_success_headers(serializer.data)
+        self.add_ingredients_in_recipe(ingredients_data, recipe)
+        self.add_tags_in_recipe(tags_data, recipe)
+        response = RecipeReadSerializer(recipe,
+                                        context={'request': self.request})
+        headers = self.get_success_headers(response.data)
         return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            response.data, status=status.HTTP_201_CREATED, headers=headers)
 
     @action(detail=True, methods=('post', 'delete'),
             permission_classes=(IsAuthenticated,))
@@ -156,8 +177,8 @@ class RecipeViewSet(ModelViewSet):
             user = request.user
             recipe = get_object_or_404(Recipe, id=pk)
             user.shopping_cart.add(recipe)
-            serializer = RecipeShortSerializer(recipe)
-            return Response(serializer.data)
+            response = RecipeShortSerializer(recipe)
+            return Response(response.data)
         if request.method == 'DELETE':
             user = request.user
             recipe = get_object_or_404(Recipe, id=pk)
@@ -193,8 +214,8 @@ class RecipeViewSet(ModelViewSet):
             user = request.user
             recipe = get_object_or_404(Recipe, id=pk)
             recipe.favorited_by.add(user)
-            serializer = RecipeShortSerializer(recipe)
-            return Response(serializer.data)
+            response = RecipeShortSerializer(recipe)
+            return Response(response.data)
         if request.method == 'DELETE':
             user = request.user
             recipe = get_object_or_404(Recipe, id=pk)

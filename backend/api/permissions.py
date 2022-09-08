@@ -9,11 +9,7 @@ class ListPostAllowAny(BasePermission):
         return request.user.is_authenticated
 
 
-class GetAllowAnyIsOwnerOrReadOnly(BasePermission):
-    def has_permission(self, request, view):
-        return (request.method in SAFE_METHODS or
-                request.user.is_authenticated)
-
+class OwnerOrReadOnly(BasePermission):
     def has_object_permission(self, request, view, obj):
         return (request.method in SAFE_METHODS or
                 request.user.id == obj.author.id)

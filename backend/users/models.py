@@ -49,7 +49,14 @@ class Following(models.Model):
     class Meta:
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
-        unique_together = ('subscriber', 'author')
+        constraints = [
+            models.CheckConstraint(
+                check=~models.Q(subscriber=models.F('author')),
+                name='not_following_yourself'),
+            models.UniqueConstraint(
+                fields=['subscriber', 'author'],
+                name='unique_following')
+        ]
 
     def __str__(self):
         return f'{self.subscriber} --> {self.author}'
