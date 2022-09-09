@@ -11,8 +11,7 @@ from rest_framework.permissions import (AllowAny, IsAuthenticated,
 from rest_framework.response import Response
 from rest_framework.viewsets import (GenericViewSet, ModelViewSet,
                                      ReadOnlyModelViewSet, mixins)
-
-from recipes.models import Ingredient, Recipe, RecipeIngredients, Tag
+from recipes.models import Ingredient, RecipeIngredients, Recipe, Tag
 
 from .filters import RecipeFilter
 from .permissions import ListPostAllowAny, OwnerOrReadOnly
