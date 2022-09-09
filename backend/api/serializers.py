@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model, password_validation
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
+
 from recipes.models import Ingredient, Recipe, Tag
 from users.models import Following
 
