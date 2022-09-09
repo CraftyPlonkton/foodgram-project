@@ -13,7 +13,6 @@ from rest_framework.viewsets import (GenericViewSet, ModelViewSet,
                                      ReadOnlyModelViewSet, mixins)
 
 from recipes.models import Ingredient, Recipe, RecipeIngredients, Tag
-from users.models import Following
 
 from .filters import RecipeFilter
 from .permissions import ListPostAllowAny, OwnerOrReadOnly
@@ -63,18 +62,22 @@ class UserViewSet(mixins.CreateModelMixin, mixins.ListModelMixin,
 
     @action(detail=False, methods=('get',),
             permission_classes=(IsAuthenticated,),
-            serializer_class=SubscriptionSerializer)
+            serializer_class=SubscriptionSerializer,)
     def subscriptions(self, request):
         """Получение списка подписок на авторов"""
+        recipes_limit = self.request.GET.get('recipes_limit')
+        if recipes_limit:
+            recipes_limit = int(recipes_limit)
         subscriptions = request.user.following.all()
-        serializer = self.get_serializer(subscriptions, many=True,
-                                         context={'request': request})
-        return Response(serializer.data)
+        page = self.paginate_queryset(subscriptions)
+        serializer = self.get_serializer(
+            page, many=True,
+            context={'request': request, 'recipes_limit': recipes_limit})
+        return self.get_paginated_response(serializer.data)
 
     @action(detail=True, methods=('post', 'delete'),
             permission_classes=(IsAuthenticated,),
-            serializer_class=FollowingSerializer,
-            queryset=Following.objects.all())
+            serializer_class=FollowingSerializer,)
     def subscribe(self, request, pk):
         """Добавление и удаление подписок на авторов"""
         if request.method == 'POST':
@@ -109,7 +112,7 @@ class IngredientViewSet(ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny,)
     pagination_class = None
-    search_fields = ('^name', '$name')
+    search_fields = ('^name',)
 
 
 class RecipeViewSet(ModelViewSet):

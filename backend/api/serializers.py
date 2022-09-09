@@ -117,20 +117,16 @@ class RecipeShortSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class SubscriptionSerializer(serializers.Serializer):
-    author = serializers.SerializerMethodField()
-    recipes = serializers.SerializerMethodField()
-    recipes_count = serializers.SerializerMethodField()
-
-    def get_author(self, obj):
-        return UserSerializer(obj, context=self.context).data
-
-    def get_recipes(self, obj):
-        return RecipeShortSerializer(
-            Recipe.objects.filter(author=obj), many=True).data
-
-    def get_recipes_count(self, obj):
-        return Recipe.objects.filter(author=obj).count()
+class SubscriptionSerializer(serializers.ModelSerializer):
+    def to_representation(self, obj):
+        recipes_limit = self.context.get('recipes_limit')
+        author_data = UserSerializer(obj, context=self.context).data
+        recipes = Recipe.objects.filter(author=obj)[:recipes_limit]
+        recipes_data = RecipeShortSerializer(recipes, many=True).data
+        recipes_count = Recipe.objects.filter(author=obj).count()
+        author_data['recipes'] = recipes_data
+        author_data['recipes_count'] = recipes_count
+        return author_data
 
 
 class FollowingSerializer(serializers.ModelSerializer):

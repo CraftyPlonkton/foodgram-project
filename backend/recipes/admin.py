@@ -23,7 +23,7 @@ class RecipeAdmin(admin.ModelAdmin):
     list_filter = ('name', 'author', 'tags')
     search_fields = ('name',)
     ordering = ('-pub_date',)
-    filter_horizontal = ('tags', 'favorited_by')
+    filter_horizontal = ('favorited_by',)
 
     def favorites_count(self, obj):
         return obj.favorited_by.all().count()
