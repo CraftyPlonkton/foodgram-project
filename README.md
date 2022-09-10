@@ -1,4 +1,4 @@
-host: http://51.250.93.144
+host: http://http://foodgram-diplom.sytes.net
 
 email: superuser@m.ru
 
