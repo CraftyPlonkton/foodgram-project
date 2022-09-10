@@ -1,4 +1,4 @@
-host: http://http://foodgram-diplom.sytes.net
+host: http://foodgram-diplom.sytes.net
 
 email: superuser@m.ru
 
