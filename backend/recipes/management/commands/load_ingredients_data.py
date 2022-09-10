@@ -8,7 +8,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            'path', default='../data/ingredients.csv', nargs='?',
+            'path', default='./data/ingredients.csv', nargs='?',
             help='Путь до файла с данными относительно manage.py')
 
     def handle(self, *args, **options):
