@@ -1,3 +1,10 @@
+host: http://51.250.93.144
+
+email: superuser@m.ru
+
+password: superuser
+
+
 # Foodgram
 
 ### Описание проекта:
