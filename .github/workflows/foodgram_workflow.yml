@@ -54,7 +54,7 @@ jobs:
           passphrase: ${{secrets.SERVER_PASSPHRASE}}
           script: |
             sudo docker pull plonkton/foodgram_backend:v1
-            cd infra/
+            cd foodgram-project-react/infra/
             sudo docker-compose stop
             sudo docker-compose rm -f backend
             touch ../.env
