@@ -1,10 +1,3 @@
-host: http://foodgram-diplom.sytes.net
-
-email: superuser@m.ru
-
-password: superuser
-
-
 # Foodgram
 
 ### Описание проекта:
